@@ -67,6 +67,7 @@ Le rapport complet est disponible au format HTML (`Projet_regression_Final.html`
 Le jeu de données au format CSV doit être téléchargé depuis la plateforme Kaggle (voir lien indiqué dans la section Jeu de données).  
 
 Pour reproduire l’analyse, il est nécessaire de placer le fichier CSV dans le répertoire de travail, puis d’ouvrir le fichier `.Rmd` dans RStudio et de compiler le document.
+Le logo UCA ainsi que le fichier de style CSS utilisés pour la mise en forme du rapport doivent également être téléchargés et placés dans le même répertoire.
 
 ---
 
