@@ -20,7 +20,6 @@ Le dataset contient 992 observations et 8 variables quantitatives représentant 
 
 Source des données : Kaggle  
 https://www.kaggle.com/datasets/ai0909/sales-data-for-company-product
-
 ---
 
 ## Démarche méthodologique
@@ -62,17 +61,16 @@ La comparaison LM vs GLM montre que le modèle linéaire classique reste le plus
 
 ## Reproductibilité
 
-L’analyse complète est disponible dans :
+L’ensemble de l’analyse est documenté dans le fichier `Projet_regression_Final.Rmd`.  
+Le rapport complet est disponible au format HTML (`Projet_regression_Final.html`).
 
-- `Projet_regression_Final.Rmd`
-- `Projet_regression_Final.html`
+Le jeu de données au format CSV doit être téléchargé depuis la plateforme Kaggle (voir lien indiqué dans la section Jeu de données).  
 
-Le projet peut être reproduit en ouvrant le fichier `.Rmd` dans RStudio et en compilant le document.
+Pour reproduire l’analyse, il est nécessaire de placer le fichier CSV dans le répertoire de travail, puis d’ouvrir le fichier `.Rmd` dans RStudio et de compiler le document.
 
 ---
 
 ## Remarque
 
-Ce projet illustre une démarche complète de modélisation statistique incluant estimation, validation des hypothèses, sélection de modèle et analyse critique des performances.  
+Ce projet académique de master 1 illustre une démarche complète de modélisation statistique incluant estimation, validation des hypothèses, sélection de modèle et analyse critique des performances.  
 
-Il met en évidence des compétences en statistique appliquée, en diagnostic de modèles et en interprétation rigoureuse des résultats.
