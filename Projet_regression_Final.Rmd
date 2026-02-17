@@ -1,0 +1,2436 @@
+---
+title: "Impact de la publicité multi-canal sur les ventes"
+auteur: "Kouassi Cyrus & Mahamat Abdoulaye"
+output:
+  html_document:
+    toc: true       # Table des matières
+    toc_float: true # TOC flottante
+    number_sections: false # Numérotation des sections
+    theme: simplex    # Style du HTML (autres choix : cerulean, journal, united, simplex...)
+    highlight: tango  # Mise en forme du code
+    df_print: paged
+    css: styleF.css   # Affichage paginé des dataframes
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+```
+
+```{r, out.width='8%', out.height= '8%'}
+knitr::include_graphics(paste("C:/Users/Dell/Documents/CyrusKouassi_MahamatAbdoulaye/logo_UCA.png"))
+```
+**Auteurs: "KOUASSI CYRUS & MAHAMAT ABDOULAYE"**
+
+***
+
+Date : 03/04/2025
+
+
+# Introduction
+
+------------------------------------------------------------------------
+
+**Contexte**
+
+Dans un marché hautement concurrentiel, les entreprises investissent
+massivement dans des campagnes publicitaires sur divers canaux,
+notamment la télévision, la radio, les promotions en magasin et les
+annonces en ligne. Cependant, toutes les stratégies de communication ne
+génèrent pas le même impact sur les ventes. Un mauvais ciblage ou une
+répartition inefficace du budget marketing peut conduire à des dépenses
+inutiles sans retour sur investissement (ROI) significatif.
+
+**L'objectif** de cette étude est d’identifier les canaux publicitaires
+qui contribuent le plus efficacement à l’augmentation des ventes.
+
+**Problématique :Quels caneaux publicitaires sont les plus efficaces
+pour augmenter les ventes ?**
+
+<u>Contenu de la dataset</u> :
+
+Elle Comprend des informations sur un produit spécifique d'une marque
+non divulguée. Chaque ligne de l'ensemble de données représente le
+volume des ventes sur une semaine, ainsi que des détails sur les
+campagnes marketing et les méthodes promotionnelles utilisées pour le
+produit tout au long de la période de deux ans. Le produit spécifique et
+les années correspondantes pour ces données restent inconnus.
+
+La base de données comporte **992 obeservations et 8 variables**. Elles
+sont toutes des **variables quantitatives**:
+
+-   Sale → le nombre de ventes de produits pour chaque semaine observée.
+-   InStrSpending → dépenses moyennes associées à la promotion du
+    produit en magasin pour la semaine observée.
+-   Discount → Le taux de remise applicable pour la semaine observée.
+-   TVSpending → dépenses moyennes en campagnes télévisées au cours de
+    la semaine observée.
+-   StockRate → taux de rupture de stock, calculé comme le nombre de
+    fois où le produit a été en rupture de stock divisé par le nombre
+    total de visites du produit.
+-   Price → le prix de base hebdomadaire observé pour le produit
+-   Radio → Le nombre de publicités ou de campagnes radio faisant la
+    promotion du produit pour la semaine observée.
+-   OnlineAdsSpending → dépenses publicitaires en ligne, calculant le
+    montant total des dépenses en publicité en ligne.
+
+NB: toutes les valeurs de prix calculées sont basées sur le dollar
+américain (USD).
+
+------------------------------------------------------------------------
+
+**Source:**
+<https://www.kaggle.com/datasets/ai0909/sales-data-for-company-product>
+
+------------------------------------------------------------------------
+
+**Auteur**: **Eine mögliche**, Data Scientist
+
+------------------------------------------------------------------------
+
+# Partie I: Explorations et Traitements
+
+------------------------------------------------------------------------
+
+## I. Analyse exploratoire
+
+------------------------------------------------------------------------
+
+```{r}
+#   Importation du notre base de données
+
+base <- read.csv("market_data.csv")
+
+# Visualisation des premières lignes
+
+head(base)
+
+```
+
+------------------------------------------------------------------------
+
+Pour améliorer la lisibilité et la compréhension de notre jeu de
+données, nous avons renommé les colonnes en utilisant des noms plus
+explicites. 
+***
+
+
+
+```{r}
+# nouveau nom
+colnames(base) <- c("Ventes", "Depenses_Magasin", "Remise", "Depenses_TV", 
+                    "Taux_Rupture_Stock", "Prix", "Publicites_Radio", "Depenses_En_Ligne")
+
+# Afficher les nouvelles colonnes pour vérification
+colnames(base)
+
+```
+
+------------------------------------------------------------------------
+
+## I.1 Resumé statistiques des données
+
+------------------------------------------------------------------------
+
+### Dimension de nos données
+
+```{r}
+dim(base)
+```
+
+------------------------------------------------------------------------
+
+### Structure des données
+
+```{r}
+str(base)
+```
+
+------------------------------------------------------------------------
+
+### Statistques descriptives
+
+```{r}
+summary(base)
+```
+
+------------------------------------------------------------------------
+
+Notre base contient 8 colonnes et 992 Observations, toutes nos variables
+sont quantitatifs.
+
+------------------------------------------------------------------------
+
+## I.2 Vérification et visualisation des valeurs manquantes
+
+------------------------------------------------------------------------
+
+```{r}
+library(visdat)
+
+# Vérification des valeurs manquantes
+missing_values <- colMeans(is.na(base)) * 100
+
+# Affichage du pourcentage de valeurs manquantes
+#print(missing_values)
+# Visualisation des valeurs manquantes sous forme de heatmap
+vis_miss(base)
+```
+
+------------------------------------------------------------------------
+
+Il n'y a **pas de données manquants** dans notre base de donnée.
+
+------------------------------------------------------------------------
+
+## I.3 Analyses univariées: Distribution des variables
+
+```{r}
+
+# Sélectionner les variables numériques
+numeric_vars <- names(base)[sapply(base, is.numeric)]
+
+# Paramètre graphique : 1 ligne, 2 colonnes (hist + boxplot)
+par(mfrow = c(1, 2))
+
+# Boucle sur chaque variable numérique
+for (var in numeric_vars) {
+  
+  # Histogramme avec densité
+  hist(base[[var]], 
+       main = paste("Distribution de", var),
+       xlab = var,
+       col = "skyblue",
+       border = "black",
+       probability = TRUE)  # Normaliser pour superposer la densité
+  
+  # Ajouter la courbe de densité
+  lines(density(base[[var]], na.rm = TRUE), 
+        col = "red", 
+        lwd = 2)
+  
+  # Boîte à moustaches
+  boxplot(base[[var]], 
+          main = paste("Boxplot de", var),
+          col = "lightgreen",
+          border = "darkgreen")
+}
+
+```
+
+------------------------------------------------------------------------
+
+L'analyse des boxplots révèle **l'absence de valeurs aberrantes ou
+extrêmes** dans notre jeu de données. De plus, l'examen des histogrammes
+pour chaque variable montre une distribution symétrique, indiquant une
+répartition équilibrée des données autour de la moyenne. Cette symétrie
+et l'absence de valeurs extrêmes suggèrent une bonne qualité et une
+cohérence dans nos données, ce qui renforce la fiabilité de nos analyses
+ultérieures et minimise le risque de biais dus à des observations
+atypiques.
+
+------------------------------------------------------------------------
+
+## I.4 Corrélation entre les variables
+
+```{r}
+# iv. Matrice de corrélation
+cor_matrix <- cor(base)
+
+# Visualiser la matrice de corrélation (nécessite le package corrplot)
+# install.packages("corrplot")  # Décommenter si vous n'avez pas corrplot
+library(corrplot)
+corrplot(cor_matrix, method = "color", type = "full",  
+         tl.col = "black", tl.srt = 30, addCoef.col = "black") #
+```
+
+------------------------------------------------------------------------
+
+**Corrélations fortes:** Les variables Sales et Price sont négativement
+corrélées (-0.67), ce qui signifie que lorsque le prix augmente, les
+ventes ont tendance à diminuer.
+
+Les variables Sales et InStrSpending sont positivement corrélées (0.58),
+cela indique que l’augmentation des dépenses en stratégie interne
+(probablement marketing ou publicité) favorise une hausse des ventes.
+
+**Corrélations modérées:** Les variables Sales et TVSpending présentent
+une corrélation positive modérée (0.41), suggérant que les dépenses en
+publicité télévisée influencent les ventes, mais avec un effet limité.
+
+Enfin, les variables InStrSpending et Sales (0.58) confirment que les
+investissements en publicité interne ont un impact significatif sur
+l’augmentation des ventes
+
+------------------------------------------------------------------------
+
+## II. Analyse en composante principale
+
+------------------------------------------------------------------------
+
+Dans une analyse de données, la régression permet d’expliquer ou de
+prédire une variable cible en fonction d’un ensemble de variables
+explicatives. Cependant, lorsque ces variables sont nombreuses et
+potentiellement corrélées entre elles, plusieurs problèmes peuvent
+apparaître, rendant la régression moins fiable. C’est dans ce contexte
+que l’Analyse en Composantes Principales (ACP) joue un rôle clé. L’ACP
+permet de résumer l’information contenue dans plusieurs variables en un
+nombre réduit de composantes principales tout en conservant un maximum
+de variance.
+
+Dans notre projet, **l’ACP est utilisée comme un prétraitement avant la
+régression** pour :
+
+-   Identifier les variables les plus influentes.
+-   Réduire le nombre de variables explicatives tout en conservant
+    l’essentiel de l’information.
+-   Améliorer la stabilité du modèle de régression en limitant les
+    problèmes de corrélation entre variables.
+-   Fournir une meilleure compréhension des relations entre les
+    variables et leur impact sur les ventes.
+
+```{r}
+# Charger les bibliothèques
+library(FactoMineR)
+library(factoextra)
+# Exécuter l'ACP sur toute la base (toutes les colonnes sont numériques)
+acp <- PCA(base, scale.unit = TRUE, graph = FALSE) 
+
+#scale.unit = TRUE pour normaliser les données car elles n'ont pas la même échelle 
+# Affichage du résumé de l'ACP
+summary(acp)
+
+
+```
+
+------------------------------------------------------------------------
+
+## II.1 Choix des dimensions
+
+```{r}
+fviz_eig(acp, addlabels = TRUE, ylim = c(0, 60))
+
+
+```
+
+------------------------------------------------------------------------
+
+Nous voyons sur le graphique les 6 premières dimensions expliquent
+presque 90 % de la variance ce qui signifie signifie que ces 6
+composantes principales contiennent quasiment toute l'information
+initiale présente dans tes données.
+
+------------------------------------------------------------------------
+
+## II.2 Cercle de corrélation
+
+**Visualisation sur les Dimension 1 et 2**
+
+------------------------------------------------------------------------
+
+```{r}
+fviz_pca_var(acp, col.var = "cos2", 
+             gradient.cols = c("blue", "purple", "red"),
+             repel = TRUE, 
+             title = "Cercle de Corrélation - ACP")
+
+```
+
+------------------------------------------------------------------------
+
+**Interprétation :**
+
+-   Les variables fortement corrélées à Dim1 : Ventes, Dépenses_Magasin
+
+Cela suggère que Dim1 représente une intensité d’activité commerciale en magasin.
+
+-   Les variables fortement corrélées à Dim2 :Publicités_Radio, Taux_Rupture, Stock 
+
+Cela peut indiquer que Dim2 répresente une dimension de déséquilibre entre communication et gestion des stocks.
+
+------------------------------------------------------------------------
+
+**Visualisaion sur les dimensions 2 et 3**
+
+```{r}
+fviz_pca_var(acp, axes = c(2, 3), 
+             col.var = "cos2", 
+             gradient.cols = c("blue", "purple", "red"),
+             repel = TRUE, 
+             title = "Cercle de Corrélation - ACP (Dim 2 et 3)")
+
+```
+
+------------------------------------------------------------------------
+
+**Interprétation :**
+
+-   Les variables fortement corrélées à Dim2 : Publicités_Radio,  Dépenses_En_Ligne, Taux_Rupture_Stock, Dépenses_Magasin 
+
+Dim2 semble refléter une dimension canal de communication et gestion opérationnelle.
+
+-   Les variables fortement corrélées à Dim3 : Dépenses_TV, Ventes, Remise 
+
+Dim3 semble davantage lié à l’impact des campagnes TV et des promotions sur les ventes, donc une dimension marketing/vente directe.
+
+## II.3 Contribution des variables aux axes
+
+**AXE1**
+
+```{r}
+fviz_contrib(acp, choice = "var", axes = 1, top = 10)
+
+```
+
+------------------------------------------------------------------------
+
+La dimension 1 est principalement influencé par les ventes, le prix et
+les dépenses en magasin car la variable ventes est la variable qui
+contribue le plus à la dimension 1 (+ 50%) mais Le prix et les dépenses
+en magasin jouent également un rôle important.
+
+------------------------------------------------------------------------
+
+**AXE 2**
+
+```{r}
+fviz_contrib(acp, choice = "var", axes = 2, top = 10)
+
+```
+
+------------------------------------------------------------------------
+
+La dimension 2 est plus influencée par les dépenses en magasin et la
+publicité radio, ce qui suggère qu’il pourrait capturer des effets liés
+aux actions marketing et commerciales. Les ventes et les dépenses en
+ligne ont une influence négligeable sur cette dimension.
+
+------------------------------------------------------------------------
+
+# Partie II : Modèle linéaire (LM)
+ 
+------------------------------------------------------------------------
+
+## I. Proposition du model linéaire
+
+------------------------------------------------------------------------
+
+Notre modèle de régression linéaire multiple se présente comme suit :
+
+Y : - Ventes
+
+X : - Depenses_Magasin - Publicites_Radio - Prix - Taux_Rupture_Stock -
+Remise - Depenses_En_ligne - Depenses_TV
+
+Le modèle s'écrit sous forme matricielle ::
+
+$$
+Y = X.A + ε \leftrightarrow
+\left(\begin{array}{cc}y_{1}\\ y_{2} \\ .\\.\\. \\ y_{n} \end{array}\right)
+=
+\left(\begin{array}{cc}  1 & x_{1,1} & ... & x_{1,p}\\ . & .& . & .\\ . &. &.  &.\\ .&. & . &.\\ 1 & x_{n,1} & ... & x_{n,p} \end{array}\right)
+\left(\begin{array}{cc}  a_{0}\\ a_{1} \\ .\\.\\ . \\ a_{p} \end{array}\right)
++
+\left(\begin{array}{cc}  ε_{1}\\ ε_{2} \\ .\\.\\. \\ ε_{n} \end{array}\right)
+$$
+
+------------------------------------------------------------------------
+
+Où :
+
+-   Y est le vecteur des ventes (n x 1)
+
+-   X est la matrice des variables explicatives (n x (p+1))
+
+-   A est le vecteur des coefficients de régression ((p+1) x 1)
+
+-   ε est le vecteur des termes d'erreur (n x 1)
+
+------------------------------------------------------------------------
+
+## II.2 Hypothèses
+
+------------------------------------------------------------------------
+
+Il y a plusieurs hypothèses à vérifier.
+
+1.  Non-nullité des corrélations : corr(X, Y) ≠ 0
+
+2.  La matrice X doit être de plein rang, assurant que X'X est
+    inversible.
+
+3.  E(εi) = 0 et σ²(εi) = σ² (ce qui équivaut à var(ε) = σ²In) et que
+    les εi sont non-corrélés et cov(Xi, εi) = 0. — ou plus strictement
+    εi i.i.d. et indépendant de Xi.
+
+4.  Les εi sont de variable aléatoires normales.
+
+------------------------------------------------------------------------
+
+### Hypothèses a priori
+
+------------------------------------------------------------------------
+
+1.  La matrice de corrélation précédemment analysée confirme des
+    coefficients de corrélation non nuls entre les variables
+    explicatives et la variable dépendante.
+
+2.  Indépendance linéaire des variables explicatives : Nous allons
+    calculés le déterminant.
+
+------------------------------------------------------------------------
+
+```{r}
+# Définir la matrice X 
+X <- as.matrix(base[, c("Depenses_Magasin", "Remise", "Depenses_TV", 
+                       "Taux_Rupture_Stock", "Prix", "Publicites_Radio", "Depenses_En_Ligne")])
+
+# Ajouter une colonne de 1 pour l'ordonnée à l'origine
+X <- cbind(1, X)
+
+# Calculer la matrice X'X
+XtX <- t(X) %*% X
+
+# Vérifier le déterminant
+det_XtX <- det(XtX)
+print(paste("Déterminant de X'X :", det_XtX))
+
+```
+
+------------------------------------------------------------------------
+
+**Le déterminant** de X'X est **non nul**, ce qui signifie que la
+matrice est **inversible**. Cela confirme l'absence de multicolinéarité
+parfaite entre les variables explicatives, garantissant ainsi que
+l'estimateur des moindres carrés ordinaires (MCO) est bien défini et
+unique.
+
+------------------------------------------------------------------------
+
+### Hypothèses a posteriori
+
+3.  Propriétés des termes d'erreur :
+
+-   E(εi) = 0 : espérance nulle des résidus
+
+-   σ²(εi) = σ² : homoscédasticité (variance constante des résidus)
+
+-   Cov(εi, εj) = 0 pour i ≠ j : non-corrélation des résidus
+
+-   Cov(Xi, εi) = 0 : indépendance entre les variables explicatives et
+    les résidus
+
+4.  Normalité des résidus : Les εi suivent une distribution normale
+
+Ces hypothèses a posteriori seront vérifiées après l'estimation du
+modèle, à travers l'analyse des résidus et des tests statistiques
+appropriés.
+
+## III. Estimation du modèle de regression linéaire
+
+## III.1 Estimateur des moindres carrés ordinaires
+
+Un **estimateur** $\hat{A}$ du vecteur $A$ peut être déterminé en
+utilisant la **méthode des moindres carrés ordinaires (MCO)**, qui
+repose sur l'hypothèse numéro 2.
+
+L'objectif est de **trouver les coefficients du vecteur** $A$ qui
+minimisent la somme des carrés des écarts entre les valeurs observées et
+celles prédites.
+
+L'estimateur des moindres carrés est donné par :
+
+$$
+\hat{A} = (X^{T}X)^{-1}X^{T}Y
+$$
+
+```{r}
+# Définir Y (variable cible) et X (variables explicatives)
+Y <- as.matrix(base$Ventes)  # Ventes est la variable dépendante
+
+X <- as.matrix(base[, c("Depenses_Magasin", "Remise", "Depenses_TV", 
+                       "Taux_Rupture_Stock", "Prix", "Publicites_Radio", "Depenses_En_Ligne")])
+
+# Calcul de (X'X)^(-1) X'Y
+XtX <- t(X) %*% X  # Produit X'X
+XtY <- t(X) %*% Y  # Produit X'Y
+
+# calculer A
+ 
+A <- solve(XtX) %*% XtY  # Calcul de A = (X'X)^(-1) X'Y
+print("Coefficients estimés A :")
+print(A)
+
+```
+
+------------------------------------------------------------------------
+
+## III.2 Détermination des résidus
+
+L’erreur $\epsilon$ (résidu) représente l’écart entre la valeur observée
+$Y$ et la valeur prédite $\hat{Y}$ par le modèle. Elle est définie par
+la relation suivante :
+
+$$
+\epsilon = Y - \hat{Y}
+$$
+
+où :\
+- $Y$ est le vecteur des valeurs observées,\
+- $\hat{Y}$ est le vecteur des valeurs prédites obtenu à partir du
+modèle,\
+- $\epsilon$ est le vecteur des erreurs de prédiction (résidus).
+
+L’estimation de $\hat{Y}$ est donnée par :
+
+$$
+\hat{Y} = X \hat{A}
+$$
+
+où $\hat{A}$ représente le vecteur des coefficients estimés par la
+méthode des moindres carrés ordinaires (MCO).
+
+------------------------------------------------------------------------
+
+```{r}
+# Calcul des valeurs prédites (Y_chapeau) et des erreurs (epsilon)
+Y_pred <- X %*% A
+epsilon <- Y - Y_pred
+
+# Afficher les erreurs
+#print(epsilon)
+
+```
+
+------------------------------------------------------------------------
+
+## IV. Création du modèle 
+
+Nous modélisons `ventes` en fonction de toutes les autres variables
+explicatives.
+
+```{r}
+modele <- lm(Ventes ~ ., data = base)
+summary(modele)
+```
+
+------------------------------------------------------------------------
+
+L'analyse des résultats montre que:
+
+-   Le modèle est **très bien ajusté** avec un $R² = 0.99$, ce qui
+    signifie que **99.85%** de la variance des ventes est expliquée par
+    les variables indépendantes.
+
+-   Toutes les variables sont significatives sauf  **Publicités Radio et Dépenses en ligne** ($p > 0.05$). Elles n'influencent pas directement les ventes.
+
+-   L'erreur standard des résidus est de **3144**, indiquant un écart
+    moyen entre les valeurs réelles et prédites des ventes.
+
+-   Le **F-statistique très élevé** et la p-value < 0,05 , confirme que le modèle est
+    statistiquement significatif.
+
+------------------------------------------------------------------------
+
+**Autre méthode pour R\*2** : $$R^2 = 1 - \frac{SSE}{SST}$$
+
+```{r}
+### Autre méthode pour R\*2
+
+X <- cbind(1, X)  # Ajoute une colonne de 1 pour l'intercept
+
+#  Calcul de R²
+SSE <- sum((Y - Y_pred)^2)  # Somme des carrés des erreurs (Sum of Squared Errors)
+SST <- sum((Y - mean(Y))^2) # Somme totale des carrés (Total Sum of Squares)
+R2 <- 1 - (SSE / SST)  # Formule de R²
+
+#  Affichage des résultats
+
+print(R2)
+
+
+```
+
+------------------------------------------------------------------------
+
+## V. Diagnostic a posteriori
+
+**Vérification des hypothèses grace au diagnostic lm (vérification
+graphique et vérification par tests) :**
+
+1.  Le modèle est linéaire
+2.  $\mathbb{E}(\epsilon) = 0$
+3.  $Var(\epsilon_{i}) = cste =\sigma²$ (homoscédasticité)
+4.  $\epsilon_{i}$ non corrélés
+5.  $\epsilon_{i}$ normales
+
+```{r}
+library(car)       # Tests statistiques
+library(lmtest)    # Test de Breusch-Pagan et Durbin-Watson
+library(lattice)   # Graphiques de résidus
+
+```
+
+### V.1 Linéarité du modèle
+
+------------------------------------------------------------------------
+
+### Visualisation graphique
+
+------------------------------------------------------------------------
+
+```{r}
+plot(modele, which = 1:6)
+```
+
+------------------------------------------------------------------------
+
+Les résidus ne sont pas répartis de manière aléatoire autour de 0. Cela
+suggère que le modèle n'est pas linéaire.
+
+------------------------------------------------------------------------
+
+### Tests Statistiques
+
+**Test de Rainbow**
+
+Hypothèses :
+
+-   $H_0$ : Le modèle est linéaire
+
+-   $H_1$ : Le modèle n'est pas linéaire.
+
+------------------------------------------------------------------------
+
+```{r}
+library(lmtest)
+raintest(modele)
+
+```
+
+***
+On accepte l'hypothèse linéarité au rique avec un rique 5% de se tromper. 
+
+***
+
+**Test de Ramsey RESET**
+
+------------------------------------------------------------------------
+
+Hypotèses :
+
+-   $H_O$: Le modèle est linéaire
+
+-   $H_1$: Le modèle est non linéaire
+
+
+```{r}
+#Test de ramsey 
+resettest(modele)
+
+```
+
+***
+
+On accepte l'hypothèse de linéarité au rique avec un rique 5% de se tromper. 
+
+------------------------------------------------------------------------
+
+**Test de Tsay**
+
+------------------------------------------------------------------------
+
+Hypotèses :
+
+-   $H_O$: Le modèle est linéaire
+
+-   $H_1$: Le modèle est non linéaire
+
+```{r}
+tsay.test <- function(modele) {
+  res <- residuals(modele)
+  fitted_values <- fitted(modele)
+  new_modele <- lm(res ~ poly(fitted_values, 2, raw = TRUE))
+  summary(new_modele)
+}
+
+tsay.test(modele)
+
+```
+
+Les deux coefficients sont significatifs (p-value \< 2e-16 pour les
+deux). Cela signifie que la relation entre X et Y n’est pas strictement
+linéaire.
+
+------------------------------------------------------------------------
+
+### V.2 Moyenne des résidus
+
+------------------------------------------------------------------------
+
+### Visualisation graphique
+
+------------------------------------------------------------------------
+
+```{r}
+hist(epsilon, main = "Distribution des Résidus", xlab = "Résidus", breaks = 30)
+abline(v = mean(epsilon), col = "red", lwd = 2, lty = 2)  
+```
+
+La ligne rouge représente la moyenne des résidus, elle semble être très
+proche de 0.
+
+------------------------------------------------------------------------
+
+### Tests Statistiques
+
+------------------------------------------------------------------------
+
+**Test de Student (t-test)**
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$ : E(ε) = 0(moyenne des erreurs est nulle)
+
+-   $H_1$ : E(ε) ≠ 0 (présence d’un biais)
+
+------------------------------------------------------------------------
+
+```{r}
+test_t <- t.test(epsilon, mu = 0)
+print(test_t)
+```
+
+------------------------------------------------------------------------
+
+La **statistique du test** est extrêmement proche de zéro, indiquant que
+la différence entre la moyenne observée et zéro est négligeable.
+
+La **p-value** très élevée (p = 1) signifie qu'il n'y a aucune preuve
+statistique contre l'hypothèse nulle E(ε) = 0.
+
+**L'intervalle de confiance à 95%** est [-195.1734, 195.1734]. Bien que
+cet intervalle soit large, il contient zéro, ce qui confirme que la
+moyenne des résidus est compatible avec 0.
+
+**Interprétation**
+
+Ces résultats soutiennent la validité de notre modèle
+de régression linéaire. La moyenne des résidus proche de zéro et la
+p-value élevée indiquent que les hypothèses fondamentales de la
+régression linéaire sont respectées, notamment l'hypothèse que
+l'espérance des erreurs est nulle.
+
+------------------------------------------------------------------------
+
+```{r}
+epsilon <- residuals(modele)
+mean_epsilon <- mean(epsilon)
+print(paste("Moyenne des erreurs :", mean_epsilon))
+```
+
+------------------------------------------------------------------------
+
+**La moyenne des résidus** obtenue est 8.657143e-14, soit
+approximativement 0. Ce résultat est conforme aux attentes en régression
+linéaire, où les résidus doivent en moyenne être proches de zéro.
+
+------------------------------------------------------------------------
+
+### V.3 Homoscédasticité des résidus
+
+------------------------------------------------------------------------
+
+### Visualisation graphique
+
+------------------------------------------------------------------------
+
+```{r}
+# Graphique Scale-Location
+plot(modele, which = 1)
+```
+
+------------------------------------------------------------------------
+
+Les résidus ne présentent pas une tendance linéaire donc l’hypothèse
+d’homoscédasticité semble ne pas être respectée.
+
+------------------------------------------------------------------------
+
+### Tests Statistiques
+
+------------------------------------------------------------------------
+
+**Test de Breusch-Pagan**
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$ : La variance des résidus est constante (homoscédasticité)
+
+-   $H_1$ : La variance des résidus n"est pas constante
+    (hétéroscédasticité)
+
+------------------------------------------------------------------------
+
+```{r}
+bptest(modele)
+
+```
+
+Le test de Breusch-Pagan nous permet d'accepter que l'hypothèse d'homoscédasticité.
+
+
+------------------------------------------------------------------------
+
+**Test de Goldfeld-Quandt**
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$ : La variance des résidus est constante (homoscédasticité)
+
+-   $H_1$ : La variance des résidus n"est pas constante
+    (hétéroscédasticité)
+
+```{r}
+# Test de Goldfeld-Quandt (package 'lmtest')
+gqtest(modele, order.by = ~ Depenses_Magasin + Publicites_Radio + Prix + Taux_Rupture_Stock +
+              Remise + Depenses_En_Ligne + Depenses_TV, data = base)
+```
+
+P-value \> 0.O5, donc on peut dire que la variance des résidus est
+constante au risque de se tromper de 5%.
+
+------------------------------------------------------------------------
+
+### V.4 Corrélation des résidus
+
+------------------------------------------------------------------------
+
+### Visualisation graphique : Corrélogramme
+
+```{r}
+library(forecast)
+autoplot(acf(residuals(modele)))
+
+```
+
+***
+
+Le test montre que les résidus ne présentent pas d’autocorrélation significative, car la plupart des barres d’autocorrélation sont dans les bandes bleues (intervalle de confiance). Cela indique que le modèle explique correctement la structure des données, sans laisser de dépendance temporelle non prise en compte.
+
+***
+
+### Tests statistiques
+
+------------------------------------------------------------------------
+
+**Test de Durbin-Watson**
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$ : Les résidus ne sont pas autocorrélés
+
+-   $H_1$ : Les résidus sont autocorrélés
+
+------------------------------------------------------------------------
+
+```{r}
+dwtest(modele)
+
+```
+
+**La statistique DW** proche de 2 et la p-value élevée(O.5306) indiquent
+qu'il n'y a pas d'autocorrélation significative entre les résidus.
+
+------------------------------------------------------------------------
+
+**Test de Ljung-Box**
+
+------------------------------------------------------------------------
+
+Hypothèse :
+
+-   $H_0$ : Les résidus ne sont pas autocorrélés
+
+-   $H_1$ : Les résidus sont autocorrélés
+
+------------------------------------------------------------------------
+
+```{r}
+Box.test(residuals(modele), type = "Ljung")
+
+```
+
+------------------------------------------------------------------------
+
+On obtient une p-value > 0,05, il n’y pas
+d’autocorrélation. Les résidus semblent donc être indépendants.
+
+------------------------------------------------------------------------
+
+**Test de Box-Pierce**
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_O$ : Les résidus ne sont pas autocorrélés (ils sont indépendants)
+
+-   $H_1$: Les résidus sont autocorrélés (présence d'une dépendance dans
+    les erreurs).
+
+------------------------------------------------------------------------
+
+```{r}
+# Extraction des résidus
+residuals_modele <- residuals(modele)
+
+# Test de Box-Pierce
+box_pierce_test <- Box.test(residuals_modele, type = "Box-Pierce")
+print(paste("Box-Pierce p-value:", box_pierce_test$p.value))
+
+```
+
+P-value > 0.05, on conclut qu'il n'y a pas d'autocorrélation significative des résidus.
+
+------------------------------------------------------------------------
+
+### V.5 Normalité des résidus
+
+------------------------------------------------------------------------
+
+### Visualisation graphique
+
+------------------------------------------------------------------------
+
+```{r}
+library(lattice)
+#Vérification de la normalité des erreurs
+
+library(ggplot2)
+
+# Création d'un dataframe pour ggplot
+residuals_data <- data.frame(Residuals = rstudent(modele))
+
+# Histogramme amélioré avec densité et courbe normale
+ggplot(residuals_data, aes(x = Residuals)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "steelblue", color = "black", alpha = 0.7) +
+  geom_density(color = "red", size = 1) +
+  stat_function(fun = dnorm, args = list(mean = mean(residuals_data$Residuals, na.rm = TRUE), 
+                                         sd = sd(residuals_data$Residuals, na.rm = TRUE)),
+                color = "black", linetype = "dashed", size = 1) +
+  labs(title = "Histogramme des résidus studentisés",
+       x = "Résidus studentisés", y = "Densité") +
+  theme_minimal()
+
+ggplot(residuals_data, aes(sample = Residuals)) +
+  stat_qq(color = "steelblue") +
+  stat_qq_line(color = "red", linetype = "dashed") +
+  labs(title = "Diagramme Q-Q des résidus studentisés",
+       x = "Quantiles théoriques", y = "Quantiles des résidus") +
+  theme_minimal()
+
+```
+
+------------------------------------------------------------------------
+
+Interprétation :
+
+-   La courbe rouge (densité empirique) ne s’aligne pas avec la courbe
+    noire en pointillés (distribution normale théorique), la normalité
+    des résidus est remise en question.
+
+-   les points s’éloignent de la ligne rouge, les résidus ne suivent pas
+    une loi normale.
+
+### Tests statistiques
+
+------------------------------------------------------------------------
+
+**Test de Shapiro-Wilk**
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$ : Le modèle suit une loi normale
+
+-   $H_1$ : Le modèle ne suit pas une loi normale
+
+------------------------------------------------------------------------
+
+```{r}
+shapiro.test(epsilon)
+
+```
+
+------------------------------------------------------------------------
+
+P-value < 0,05 donc nous  concluons que **les résidus ne suivent pas une loi normale**.
+
+------------------------------------------------------------------------
+
+**Test de normalité de Lilliefors**
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$: Le modèle suit une loi normale
+
+-   $H_1$ : Le modèle ne suit pas une loi normale.
+
+------------------------------------------------------------------------
+
+```{r}
+# Installation du package si nécessaire
+
+# Chargement du package
+library(nortest)
+
+lilliefors_test <- lillie.test(residuals_modele)
+print(paste("Lilliefors p-value:", lilliefors_test$p.value))
+```
+
+P-value < 0.05, donc les résidus ne suivent pas une loi normale.
+
+------------------------------------------------------------------------
+
+## **Tableau récapitulatif de nos tests statistiques**
+
+------------------------------------------------------------------------
+
+```{r}
+# Charger les packages nécessaires
+library(knitr)
+library(kableExtra) 
+library(dplyr)
+
+# Création du dataframe avec regroupement des tests par hypothèse nulle
+resultats_tests <- data.frame(
+  Hypothese_Nulle = c(
+    "Le modèle est linéaire", "", "", 
+    "La moyenne des erreurs est nulle", 
+    "La variance des résidus est constante", "", 
+    "Les résidus ne sont pas autocorrélés", "", "", 
+    "Les résidus suivent une loi normale", ""
+  ),
+  Test = c(
+    "Test de Rainbow", "Test de Ramsey RESET", "Test de TSAY",
+    "Test de Student (t-test)", 
+    "Test de Breusch-Pagan", "Test de Goldfeld-Quandt",
+    "Test de Durbin-Watson", "Test de Ljung-Box", "Test de Box-Pierce",
+    "Test de Shapiro-Wilk", "Test de Lilliefors"
+  ),
+  p_value = c(
+    0.0844, "< 2.2e-16", "<0.05",  
+    1,  
+    0.08313, 0.6,  
+    0.5306, 0.9326, 0.9327346,  
+    "< 2.2e-16", "4.72e-38"
+  ),
+  Conclusion = c(
+    "Vérifiée", "Rejetée", "Rejetée",  
+    "Vérifiée",  
+    "Vérifiée", "Vérifiée",  
+    "Vérifiée", "Vérifiée", "Vérifiée",  
+    "Rejetée", "Rejetée"
+  )
+)
+
+# Appliquer la mise en couleur sur la colonne "Conclusion"
+resultats_tests <- resultats_tests %>%
+  mutate(Conclusion = ifelse(Conclusion == "Vérifiée", 
+                             cell_spec(Conclusion, color = "green", bold = TRUE), 
+                             cell_spec(Conclusion, color = "red", bold = TRUE)))
+
+# Affichage du tableau avec mise en forme améliorée
+kable(resultats_tests, format = "html", escape = FALSE) %>%
+  kable_styling("striped", full_width = FALSE, bootstrap_options = c("condensed", "responsive")) %>%
+  column_spec(1, bold = TRUE, width = "30%") %>%
+  column_spec(2, width = "30%") %>%
+  column_spec(3, width = "15%") %>%
+  column_spec(4, width = "15%")
+
+
+```
+
+------------------------------------------------------------------------
+
+## VI. Détection des individus extrêmes (outliers)
+***
+
+------------------------------------------------------------------------
+
+Nous vérifions la présence des outliers dans notre modèle. Afin de les identifier, nous allons utiliser différentes approches :
+
+-   Détection des outliers via l'effet levier (Hat Values) : Détecte les
+    observations éloignées du nuage des données
+
+-   Détection des outliers via la distance de Cook : Trouve les points
+    influents globalement sur tout le modèle.
+
+-   Détection via les résidus studentisés : Vérifie si les erreurs
+    suivent une distribution normale et sont homogènes.
+
+-   Analyse des DFBETAS (Influence sur les coefficients) :Vérifie
+    l'impact des observations sur les coefficients.
+
+-   Analyse des DFFITS (Influence sur les prédictions) : Trouve les
+    observations qui faussent leurs propres prédictions.
+
+***
+
+### VI.1 Détection des outliers via l'effet levier (Hat Values)
+
+***
+
+L'effet levier est mesuré par la matrice Hat :
+$$ H = X (X^T X)^{-1} X^T$$ où $$H$$ représente la diagonale de la
+matrice Hat.
+
+Une observation est considérée comme influente si :
+$$ H > \frac{2p}{n} $$
+
+où :
+-   $p$ est le nombre de paramètres du modèle (y compris l'intercept),
+-   $n$ est la taille de l’échantillon.
+
+```{r}
+library(olsrr)
+# Graphique des valeurs de levier
+ols_plot_resid_lev(modele)
+
+# Graphique des résidus studentisés vs valeurs ajustées
+ols_plot_resid_stud_fit(modele)
+
+
+```
+
+```{r}
+# Calcul des valeurs de leverage
+hat_values <- hatvalues(modele)
+
+# Définition du seuil (2p/n)
+p <- length(coef(modele))  # Nombre de coefficients (variables explicatives + intercept)
+n <- nrow(base)  # Nombre d'observations
+seuil_levier <- 4 * p / n  
+
+# Identifier les outliers
+outliers_hat <- which(hat_values > seuil_levier)
+print(outliers_hat)
+```
+
+
+```{r}
+summary(hat_values)  # Vérifier les min, max et médiane des valeurs de levier
+print(seuil_levier)
+
+```
+***
+
+Le seuil est trop bas pour detecter les valeurs extrèmes qu'on visualise sur le graphique donc on l'augmente. L'effet levier ne détecte pas d'outliers.
+
+***
+
+### VI.2 Détection via les résidus studentisés
+
+***
+
+Les résidus studentisés externes permettent de détecter les valeurs
+aberrantes : $$ t_i = \frac{e_{(i)}}{s_{(i)} \sqrt{1 - h_i}} $$
+où :
+
+-   $e_i$ est le résidu de l'observation $i$ 
+_   $h_i$ est la valeur de levier, $s_{(i)}$ est l’écart-type des résidus calculé sans l’observation $i$.
+
+Une observation est suspecte si $|t_i| > 3$.
+
+------------------------------------------------------------------------
+
+```{r}
+# Résidus studentisés
+ols_plot_resid_stud(modele)
+
+# Résidus standardisés
+ols_plot_resid_stand(modele)
+
+```
+
+```{r}
+library(MASS)
+
+residus_student <- studres(modele)  # Calcul des résidus studentisés
+
+# Identifier les outliers avec |résidu studentisé| > 2 ou > 3
+outliers_residus  <- which(abs(residus_student) > 2)
+outliers_residus_severes<- which(abs(residus_student) > 3)
+
+# Afficher le nombre d'outliers détectés
+nombre_outliers <- length(outliers_residus) 
+nombre_outliers_severes <- length(outliers_residus_severes)
+
+cat("Nombre d'outliers avec |résidu studentisé| > 2 :", nombre_outliers, "\n")
+cat("Nombre d'outliers sévères avec |résidu studentisé| > 3 :", nombre_outliers_severes, "\n")
+
+# Visualisation
+#plot(residus_student, type = "h", main = "Résidus Studentisés", 
+     #xlab = "Observations", ylab = "Résidus Studentisés")
+#abline(h = c(-2, 2), col = "orange", lty = 2)
+#abline(h = c(-3, 3), col = "red", lty = 2)
+
+```
+
+------------------------------------------------------------------------
+
+-   Les lignes rouges (±3) et orange (±2) indiquent des seuils au-delà desquels les
+résidus sont considérés comme significatifs. Les valeurs entre ces lignes indiquent des observations potentiellement aberrantes ce que nous contatons en observant le graphique.
+
+-   Certaines observations autour des indices 93, 95, 276, 379, etc., semblent se démarquer, ce qui signifie qu'elles pourraient être influentes ou mal modélisées.
+
+------------------------------------------------------------------------
+
+### VI.3 Détection des outliers via la distance de Cook
+
+------------------------------------------------------------------------
+
+La distance de Cook mesure l'influence d'une observation sur l'ensemble
+du modèle :
+
+$$ D_i = \frac{\sum_{j=1}^{n} (\hat{Y}_j - \hat{Y}_{j(i)})^2}{p \cdot \hat{\sigma}^2} $$
+Une règle générale pour identifier les observations influentes
+:$$ D_i > \frac{4}{n} $$ où :
+
+-   $D_i$ est la distance de Cook pour l’observation $i$,
+-   $\hat{Y}_j$ est la prédiction avec tous les points,
+-   $\hat{Y}_{j(i)}$ est la prédiction sans l'observation $i$,
+-   $p$ est le nombre de paramètres du modèle,
+-   $\hat{\sigma}^2$ est la variance des résidus.
+
+------------------------------------------------------------------------
+
+```{r}
+# Distance de Cook pour identifier les points influents
+ols_plot_cooksd_bar(modele)
+
+
+```
+
+```{r}
+#METHODE 2
+# Calcul de la distance de Cook
+cooks_distances <- cooks.distance(modele)
+
+# Seuil standard (valeur critique 4/n)
+seuil_cook <- 4/n
+outliers_cook <- which(cooks_distances > seuil_cook)
+
+print(outliers_cook)
+
+# Visualisation
+#plot(cooks_distances, type = "h", main = "Distance de Cook", 
+    # xlab = "Observations", ylab = "Cook’s Distance")
+#abline(h = seuil_cook, col = "red", lty = 2)  # Seuil critique
+
+```
+
+------------------------------------------------------------------------
+
+Les points qui dépassent la ligne rouge ont un effet disproportionné sur
+la régression. Ces points doivent être examinés individuellement pour
+voir s'ils sont des valeurs aberrantes ou des observations influentes.
+
+
+***
+### VI.4 Analyse des DFBETAS (Influence sur les coefficients)
+
+DFBETAS (Difference in Betas) mesure l’impact d’une observation sur un
+coefficient de régression spécifique.
+$$ DFBETAS_{ij} = \frac{\beta_j - \beta_{j(i)}}{s_{(i)} \sqrt{C_{jj}}} $$
+où :
+
+-   $\beta_j$ est le coefficient estimé avec tous les points,
+-   $\beta_{j(i)}$ est le coefficient estimé sans l’observation $i$,
+-   $C_{jj}$ est l’élément diagonal de la matrice $(X^T X)^{-1}$. Une
+    valeur $|DFBETAS_{ij}| > 2 / \sqrt{n}$ indique une forte influence.
+
+------------------------------------------------------------------------
+
+```{r}
+# Graphique des DFBETAS
+ols_plot_dfbetas(modele)
+
+```
+
+```{r}
+# Charger la bibliothèque ggplot2
+library(ggplot2)
+# Calcul des DFBETAS
+dfbetas_values <- dfbetas(modele)
+
+# Nombre d'observations
+n <- nrow(base)
+
+# Seuil critique pour DFBETAS
+dfbetas_threshold <- 2 / sqrt(n) 
+
+# Identifier les observations influentes
+influential_dfbetas <- which(apply(abs(dfbetas_values), 1, max) > dfbetas_threshold)
+
+# Afficher le nombre d'observations influentes
+nombre_influentes <- length(influential_dfbetas)
+
+cat("Nombre d'observations influentes selon DFBETAS :", nombre_influentes, "\n")
+
+
+# Affichage des observations influentes
+#
+# Visualisation des DFBETAS
+#dfbetas_df <- data.frame(Observation = 1:n, DFBETAS = apply(dfbetas_values, 1, max))
+#ggplot(dfbetas_df, aes(x = Observation, y = DFBETAS)) +
+  #geom_point(alpha = 0.5) +
+  #geom_hline(yintercept = dfbetas_threshold, col = "red", linetype = "dashed") +
+  #theme_minimal()
+
+```
+
+------------------------------------------------------------------------
+
+-   De nombreuses observations influencent au moins un coefficient du
+    modèle.
+
+-   La liste des indices influents est assez longue, ce qui signifie
+    qu'il y a plusieurs valeurs qui affectent les estimations des
+    coefficients.
+
+-   Les points les plus élevés dans le graphique doivent être examinés,
+    car ils ont un effet important sur les paramètres du modèle.
+
+------------------------------------------------------------------------
+
+### VI.5 Analyse des DFFITS (Influence sur les prédictions)
+
+DFFITS (Difference in Fits) indique si une observation change fortement
+la valeur prédite du modèle.
+
+$$ DFFITS_i = \frac{\hat{Y}_i - \hat{Y}_{i(i)}}{s_{(i)} \sqrt{h_i}} $$
+où :
+
+-   $\hat{Y}_i$ est la prédiction avec tous les points,
+-   $\hat{Y}_{i(i)}$ est la prédiction sans l’observation $i$.
+
+Une observation est considérée comme influente si :
+$$ |DFFITS_i| > 2 \frac{\sqrt{p}}{\sqrt{n}} $$
+
+```{r}
+# Graphique des DFFITS
+ols_plot_dffits(modele)
+
+```
+
+```{r}
+# Calcul des DFFITS
+dffits_values <- dffits(modele)
+
+# Nombre de prédicteurs dans le modèle (hors intercept)
+p <- length(coef(modele)) - 1  
+
+# Nombre d'observations
+n <- nrow(base)
+
+# Seuil critique pour DFFITS
+dffits_threshold <- 2 * sqrt(p / n)
+
+# Identifier les observations influentes selon DFFITS
+influential_dffits <- which(abs(dffits_values) > dffits_threshold)
+
+# Afficher le nombre d'observations influentes
+nombre_influentes_dffits <- length(influential_dffits)
+
+cat("Nombre d'observations influentes selon DFFITS :", nombre_influentes_dffits, "\n")
+
+# Affichage des observations influentes
+#cat("Observations influentes selon DFFITS : ", influential_dffits, "\n")
+
+# Visualisation des DFFITS
+#dffits_df <- data.frame(Observation = 1:n, DFFITS = dffits_values)
+#ggplot(dffits_df, aes(x = Observation, y = DFFITS)) +
+  #geom_point(alpha = 0.5) +
+  #geom_hline(yintercept = c(-dffits_threshold, dffits_threshold), col = "red", linetype = "dashed") +
+  #theme_minimal()
+
+
+```
+
+
+-   Les observations influentes selon DFFITS sont celles qui changent
+    significativement la valeur prédite.
+
+-   Certaines observations apparaissent dans les deux listes (DFBETAS &
+    DFFITS), ce qui indique qu’elles affectent à la fois les
+    coefficients et les prédictions.
+
+-   Les points au-dessus de la ligne rouge dans le graphique DFFITS sont
+    ceux qui ont le plus grand impact sur les valeurs prédites.
+
+------------------------------------------------------------------------
+
+### **Resumé des influences**
+
+***
+
+```{r}
+#  Charger les bibliothèques nécessaires
+library(MASS)  # Pour les résidus studentisés
+library(ggplot2)  # Pour les visualisations
+
+#  Calcul des Résidus Studentisés
+residus_student <- studres(modele)  
+
+# Détection des Outliers
+outliers_residus <- which(abs(residus_student) > 2)
+outliers_residus_severes <- which(abs(residus_student) > 3)
+
+# Nombre d'outliers détectés
+nombre_outliers <- length(outliers_residus)
+nombre_outliers_severes <- length(outliers_residus_severes)
+
+#  Calcul des DFBETAS
+dfbetas_values <- dfbetas(modele)
+n <- nrow(base)  # Nombre d'observations
+dfbetas_threshold <- 2 / sqrt(n)  # Seuil critique
+influential_dfbetas <- which(apply(abs(dfbetas_values), 1, max) > dfbetas_threshold)
+nombre_influentes_dfbetas <- length(influential_dfbetas)
+
+# Calcul des DFFITS
+dffits_values <- dffits(modele)
+p <- length(coef(modele)) - 1  # Nombre de prédicteurs
+dffits_threshold <- 2 * sqrt(p / n)  # Seuil critique
+influential_dffits <- which(abs(dffits_values) > dffits_threshold)
+nombre_influentes_dffits <- length(influential_dffits)
+
+# Tableau Récapitulatif
+recapitulatif <- data.frame(
+  Critère = c("Outliers (Résidus Studentisés > 2)", 
+              "Outliers Sévères (Résidus Studentisés > 3)", 
+              "Observations Influentes (DFBETAS)", 
+              "Observations Influentes (DFFITS)"),
+  Nombre = c(nombre_outliers, nombre_outliers_severes, 
+             nombre_influentes_dfbetas, nombre_influentes_dffits)
+)
+
+# Affichage du tableau formaté
+library(kableExtra)
+recapitulatif %>%
+  kbl() %>%
+  kable_paper(full_width = F)
+
+
+
+```
+***
+
+### **Graphique d'influence**
+
+------------------------------------------------------------------------
+
+```{r}
+#influence.measures(modele)
+
+influencePlot(modele)
+```
+
+
+***
+
+### VI.6 Suppression des valeurs extrêmes et création du nouveau modèle
+
+Suite à la visualisation de nos valeurs extrême, on peut créer un
+nouveau modèle en les supprimants afin de voir si il est possible de
+faire une meilleure étude de nos données.
+
+***
+
+```{r}
+# Suppression des outliers identifiés
+#  Supprimer les observations influentes détectées par DFBETAS
+base_sans_dfbetas <- base[-influential_dfbetas, ]
+
+# Ajuster un nouveau modèle sans ces observations
+modele_sans_dfbetas <- lm(Ventes ~ ., data = base_sans_dfbetas)
+
+```
+
+***
+
+**Modèle Initial**
+
+```{r}
+summary(modele)
+
+```
+***
+**Modèle sans Outliers (DFBETAS)** 
+```{r}
+summary(modele_sans_dfbetas)
+
+```
+
+### **Comparaison des modèles (avec et sans outlier)**
+
+```{r}
+# Extraction des coefficients des deux modèles
+coef_initial <- summary(modele)$coefficients
+coef_sans_dfbetas <- summary(modele_sans_dfbetas)$coefficients
+
+# Création d'un tableau comparatif des coefficients
+comparaison_coefficients <- data.frame(
+  Variable = rownames(coef_initial),
+  "Estimate (avec outliers)" = coef_initial[, 1],
+  "Std. Error (avec outliers)" = coef_initial[, 2],
+  "Estimate (Sans outliers)" = coef_sans_dfbetas[, 1],
+  "Std. Error (Sans outliers)" = coef_sans_dfbetas[, 2]
+)
+
+#  Affichage du tableau comparatif des coefficients
+comparaison_coefficients %>%
+  kbl() %>%
+  kable_paper(full_width = F)
+
+```
+
+
+------------------------------------------------------------------------
+
+La suppression des outliers n’a pas drastiquement changé le modèle. Les variables
+Publicites_Radio, Depenses_En_Ligne restent non significatives, et pourraient être retirées pour optimiser le modèle. 
+
+------------------------------------------------------------------------
+
+
+## VII. Qualité d'ajustement du modèle
+
+***
+
+## VII.1 Analyse de la multicolinéarité
+
+***
+###  Variance Inflation Factor (VIF)
+
+Le Variance Inflation Factor (VIF) mesure dans quelle mesure la variance d’un coefficient de régression est augmentée à cause de la colinéarité avec les autres variables explicatives. Une valeur élevée indique une forte multicolinéarité.
+$$
+\text{VIF}_j = \frac{1}{1 - R_j^2}
+$$
+
+où $R_j^2$  est le coefficient de détermination obtenu en régressant la variable $X_j$ sur toutes les autres variables explicatives du modèle.
+
+***
+```{r}
+library(car)
+
+# Calcul du VIF
+vif_valeur <- vif(modele)
+
+# Affichage des résultats
+print(vif_valeur)
+
+```
+***
+
+Toutes les valeurs du VIF sont inférieur à 2, ce qui indique une faible corrélation entre les variables explicatives. Le modèle est bien spécifié, et la multicolinéarité n’a pas d’impact négatif sur les estimations des coefficients.
+
+***
+
+### Tolérance
+
+***
+La tolérance est l’inverse du VIF et représente la proportion de variance d’une variable qui n’est pas expliquée par les autres variables du modèle.
+
+$$
+\text{Tolérance}_j = \frac{1}{\text{VIF}_j} = 1 - R_j^2
+$$
+
+
+***
+```{r}
+# Calcul de la tolérance
+tolerance <- 1 / vif_valeur
+
+# Affichage des résultats
+print(tolerance)
+```
+***
+Toutes les valeurs de tolérance sont proches de 1, indiquant que chaque variable a une faible corrélation avec les autres. Cela signifie que le modèle est bien spécifié et que les coefficients de régression sont fiables et interprétables.
+
+***
+## VII.2 Sélection du modèle selon le Critère AIC
+
+L'Akaike Information Criterion (AIC) est une mesure utilisée pour comparer différents modèles statistiques tout en prenant en compte à la fois la **qualité de l’ajustement** et **la complexité du modèle.**
+
+L'AIC est défini comme :
+
+$$ AIC = -2 \ln(L) + 2 (p + 1) $$
+
+où :
+-   L est la vraisemblance du modèle,
+-   p est le nombre de paramètres estimés.
+-   Plus l’AIC est faible, meilleur est le modèle.
+
+***
+
+### AIC descendante (Backward)
+
+On part d'un modele complet. A chaque etape, on elimine la variable sans laquelle, le modele a un AIC le plus faible.
+
+***
+
+```{r}
+library(MASS)
+
+modele_aic_backward <- stepAIC(modele, direction = "backward")
+summary(modele_aic_backward)
+
+```
+
+
+
+***
+
+### AIC Ascendante (Forward)
+
+***
+
+On demarre avec une constance, de la forme $$Y = b$$. 
+
+***
+
+A chaque etape, le procede ajoute la variable avec laquelle le modele a un AIC le plus faible.
+
+***
+
+```{r}
+modele_vide <- lm(Ventes ~ 1, data = base)
+modele_aic_forward <- stepAIC(modele_vide, scope = list(lower = modele_vide, upper = modele), direction = "forward")
+summary(modele_aic_forward)
+
+```
+
+
+------------------------------------------------------------------------
+
+### AIC Mixte (Forward + Backward)
+
+***
+
+Combine les deux méthodes : on ajoute les variables pertinentes et on en
+retire celles devenues inutiles.
+
+***
+
+```{r}
+modele_aic_both <- stepAIC(modele, direction = "both")
+summary(modele_aic_both)
+
+```
+
+------------------------------------------------------------------------
+
+
+
+***
+
+**Conclusion**
+
+***
+
+Le modèle présentant l'AIC le plus bas constitue le meilleur compromis entre précision et simplicité. Dans notre cas, les différentes méthodes de sélection basées sur le critère AIC aboutissent à la même valeur.
+
+***
+
+## VII.3 Sélection du modèle selon le Critère BIC
+
+***
+
+Le critère d'information bayésien (BIC) est une mesure statistique utilisée pour la sélection de modèles parmi un ensemble fini de modèles. Le BIC pénalise plus fortement que AIC, car log(n) croit avec n, rendant les modèles complexes moins attractif lorsque l'échantillon est grand. 
+
+Sa **définition formelle** est la suivante :
+
+$$BIC = -2 \ln(L) + (p +1) \ln(n)$$
+
+-   L : Vraisemblance maximale du modèle
+
+-   p : Nombre de paramètres estimés par le modèle
+  
+-   n : Taille de l'échantillon (nombre d'observations)
+
+
+**Formule spécifique à la régression linéaire **:
+Pour un modèle de régression linéaire, le BIC peut être exprimé en fonction de l'erreur quadratique moyenne(MSE) :
+
+$$BIC = n \ln(MSE) + (p+1) \ln(n)$$
+-   n : Nombre d'observations.
+
+-   MSE : Mean Squared Error (Erreur Quadratique Moyenne) avec $$ MSE = \frac{RSS}{n}$$ 
+
+-   p : Nombre de paramètres estimés dans le modèle, incluant l'intercept.
+
+
+***
+
+
+```{r}
+
+#  Nombre d'observations
+n <- nrow(base)  # Nombre total d'observations
+
+#  Sélection descendante (Backward BIC)
+modele_bic_backward <- stepAIC(modele, direction = "backward", k = log(n), trace = FALSE)
+
+#  Sélection ascendante (Forward BIC) - Ajout de variables une à une
+modele_bic_forward <- stepAIC(lm(Ventes ~ 1, data = base), direction = "forward", 
+                              scope = formula(modele), k = log(n), trace = FALSE)
+
+#  Sélection mixte (Both BIC) - Combine ajout et suppression de variables
+modele_bic_both <- stepAIC(lm(Ventes ~ 1, data = base), direction = "both", 
+                           scope = formula(modele), k = log(n), trace = FALSE)
+
+
+```
+***
+
+**Modèle sélectionné par BIC (Descendant)**
+
+***
+
+```{r}
+print(modele_bic_backward$call)
+```
+
+***
+
+**Modèle sélectionné par BIC (Ascendant)**
+
+***
+
+```{r}
+print(modele_bic_forward$call)
+
+```
+
+***
+
+**Modèle sélectionné par BIC** 
+***
+```{r}
+
+print(modele_bic_both$call)
+```
+
+***
+### **Comparaison des Modèles**
+***
+
+**Bilan pour l'AIC**
+
+***
+
+```{r}
+# Récupérer les variables sélectionnées dans chaque modèle
+vars_backward <- names(coef(modele_aic_backward))[-1]  # Exclut l'intercept
+vars_forward <- names(coef(modele_aic_forward))[-1]
+vars_stepwise <- names(coef(modele_aic_both))[-1]
+
+# Liste de toutes les variables candidates
+all_vars <- names(coef(modele))[-1]
+
+# Création d'un tableau récapitulatif
+comparaison_selection <- data.frame(
+  Variable = all_vars,
+  Backward = ifelse(all_vars %in% vars_backward, "O", "X"),
+  Forward = ifelse(all_vars %in% vars_forward, "O", "X"),
+  Stepwise = ifelse(all_vars %in% vars_stepwise, "O", "X")
+)
+
+# Affichage du tableau en format joli avec kable
+comparaison_selection %>%
+  kbl() %>%
+  kable_paper(full_width = F) %>%
+  column_spec(2:4, width = "3cm") %>%
+  row_spec(which(comparaison_selection$Backward == "X"), color = "red") %>%
+  row_spec(which(comparaison_selection$Forward == "X"), color = "blue") %>%
+  row_spec(which(comparaison_selection$Stepwise == "X"), color = "green")
+
+```
+
+
+***
+
+**Bilan pour le BIC**
+
+***
+
+```{r}
+# Récupérer les variables sélectionnées dans chaque modèle BIC
+vars_backward_bic <- names(coef(modele_bic_backward))[-1]  # Exclut l'intercept
+vars_forward_bic <- names(coef(modele_bic_forward))[-1]
+vars_stepwise_bic <- names(coef(modele_bic_both))[-1]
+
+# Liste de toutes les variables candidates
+all_vars_bic <- names(coef(modele))[-1]
+
+# Création d'un tableau récapitulatif pour BIC
+comparaison_selection_bic <- data.frame(
+  Variable = all_vars_bic,
+  Backward = ifelse(all_vars_bic %in% vars_backward_bic, "O", "X"),
+  Forward = ifelse(all_vars_bic %in% vars_forward_bic, "O", "X"),
+  Stepwise = ifelse(all_vars_bic %in% vars_stepwise_bic, "O", "X")
+)
+
+# Affichage du tableau en format joli avec kable
+comparaison_selection_bic %>%
+  kbl() %>%
+  kable_paper(full_width = F) %>%
+  column_spec(2:4, width = "3cm") %>%
+  row_spec(which(comparaison_selection_bic$Backward == "X"), color = "red") %>%
+  row_spec(which(comparaison_selection_bic$Forward == "X"), color = "blue") %>%
+  row_spec(which(comparaison_selection_bic$Stepwise == "X"), color = "green")
+
+```
+
+
+***
+
+Le modèle présentant le BIC le plus bas représente le meilleur équilibre entre précision et simplicité. Dans notre cas, toutes les méthodes de sélection basées sur le critère BIC aboutissent au même modèle optimal.
+
+
+***
+
+### Conclusion de l'AIC et BIC
+
+***
+
+Tandis que l’AIC privilégie la qualité d’ajustement en accordant plus de poids à la précision, le BIC favorise les modèles plus simples, en appliquant une pénalisation plus forte à la complexité.
+
+Dans notre cas, les deux critères ont convergé vers le même modèle, excluant les variables Publicités_Radio et Dépenses_En_Ligne. Ce choix valide la pertinence du modèle simplifié, qui représente un compromis optimal entre performance prédictive et interprétabilité.
+
+***
+
+## VII.3 AIC ET BIC sans outliers(dfbetas)
+
+```{r}
+#  Calcul de l'AIC et du BIC avant suppression des observations influentes
+aic_avec_dfbetas <- AIC(modele)
+bic_avec_dfbetas <- BIC(modele)
+
+#  Calcul de l'AIC et du BIC après suppression des observations influentes
+aic_sans_dfbetas <- AIC(modele_sans_dfbetas)
+bic_sans_dfbetas <- BIC(modele_sans_dfbetas)
+
+#  Affichage des résultats
+print(paste(" AIC avec DFBETAS :", round(aic_avec_dfbetas, 2)))
+print(paste(" AIC sans DFBETAS :", round(aic_sans_dfbetas, 2)))
+print(paste(" BIC avec DFBETAS :", round(bic_avec_dfbetas, 2)))
+print(paste(" BIC sans DFBETAS :", round(bic_sans_dfbetas, 2)))
+
+
+```
+***
+
+La supression des outliers a considérablement améliorer l'AIC et le BIC. Donc, on décide de suprimer les ouliers et de garder le modèle sans dfbetas. De plus, la sélection du modèle nous permets de selectionner toutes les variable sauf **Publicites_Radio et Depenses_En_Ligne**.
+
+***
+
+### **Conclusion du Modèle de Régression Linéaire**
+
+***
+
+Nous concluons que le modèle de régression linéaire seul n’est pas suffisant pour expliquer le lien entre notre variables cible et nos variables explicatives. Afin d’explorer d’autres approches plus adaptées, nous allons  nous orienter vers les modèles de régression généralisée (GLM), qui permettront de tester différentes distributions de la variable cible et d’adapter la fonction de lien en fonction de la nature des données.
+
+L’objectif est de trouver un modèle plus performant et plus robuste, capable de mieux représenter les relations sous-jacentes aux données et d’améliorer la qualité des prédictions.
+
+***
+
+
+# PARTIE III: Modèle Linéaire Généralisé (GLM)
+
+***
+Le Modèle Linéaire Généralisé est une extension du modèle de régression linéaire qui permet d’analyser des variables dépendantes qui ne suivent pas une loi normale. Contrairement au modèle linéaire classique, le GLM permet d’utiliser :
+
+-  Une distribution adaptée à la nature des données (normale, binomiale, poisson, gamma…).
+-  Une fonction de lien pour relier la moyenne de la variable dépendante à une combinaison linéaire des prédicteurs.
+
+**Structure mathématique du GLM**  
+
+la matrice design X est définie comme :
+$$
+X =
+\begin{bmatrix}
+1 & x_{1,1} & \dots & x_{1,p} \\
+\vdots & \vdots & \ddots & \vdots \\
+1 & x_{n,1} & \dots & x_{n,p} 
+\end{bmatrix}
+$$
+La fonction de densité de probabilité $f_{Y|X=x}$ de la variable aléatoire Y conditionnée à X = *x*
+
+$$
+f_{Y|X=x}(y_i) = \exp\left( \frac{y_i \theta_i - b(\theta_i)}{a_i(\phi)} + c(y_i, \phi) \right)
+$$
+
+où :
+
+- $\theta$ est le paramètre naturel d’intérêt
+- $\phi$ est le paramètre de nuisance (supposé connu)
+- $a, b, c$ sont des fonctions connues
+
+***
+
+L'espérance et la variance sont définies par :
+
+$$
+E[Y | X = x_i] = g^{-1}(\theta_i)
+$$
+
+$$
+\text{Var}(Y | X = x_i) = b' (g(\mu_i)) \phi
+$$
+
+Le modèle s'écrit alors : **$y_i = g^{-1}(X_i^T A) + \epsilon_i$** avec :$A = \theta$
+
+Il existe différents modèles GLM. Pour l’application à tous ces modèles, il faut faire attention à l’indépendances des observations (et des erreurs), à l’absence de valeurs aberrantes et à l’absence de multicolinéarité excessive. Voici les différents types de modèles:
+
+-  Modèle GLM pour des variables qualitatives : modèle logistique binomial (quand on a des variables binaires)
+-  Modèle de poisson (quand on a des variable de comptage)
+-  Modèle GLM pour des variables continues : gaussien, distribution de Student, distribution beta ou distribution Gamma.
+
+***
+
+## I. Proposition du model linéaire généralisé
+
+***
+
+Notre variable cible étant strictement positive, nous utiliserons une distribution Gamma pour la modélisation. Afin d'optimiser la spécification du modèle, nous comparerons différentes fonctions de lien (inverse, log, identity) pour déterminer celle qui procure l'ajustement optimal aux données.
+
+***
+
+### Modèle gaussien avec link = log
+
+```{r}
+# Ajustement du modèle GLM avec loi Gaussienne
+modele_gaussien_log <- glm(Ventes ~ ., family = gaussian(link = "log"), data = base)
+
+# Résumé du modèle
+summary(modele_gaussien_log)
+```
+
+
+### Modèle Gamma avec lien = identity
+
+***
+
+```{r}
+modele_gamma_identity <- glm(Ventes ~ ., data = base, family = Gamma(link = "identity"))
+summary(modele_gamma_identity)
+
+```
+
+***
+### Modèle Gamma avec lien inverse
+
+
+```{r}
+modele_gamma_inverse <- glm(Ventes ~ ., data = base, family = Gamma(link = "inverse"))
+summary(modele_gamma_inverse)
+
+```
+***
+### Modèle Gamma avec lien logarithmique
+
+***
+
+```{r}
+modele_gamma_log <- glm(Ventes ~ ., data = base, family = Gamma(link = "log"))
+summary(modele_gamma_log)
+
+
+```
+
+## II. Comparaison des modèles
+
+***
+
+```{r}
+# Charger les bibliothèques nécessaires
+library(Metrics)  # Pour calculer le RMSE
+library(knitr)    # Pour formater le tableau
+library(kableExtra) # Pour un affichage amélioré du tableau
+
+# Liste des modèles à comparer
+glm_models = list(modele, modele_gamma_identity, modele_gamma_inverse, modele_gamma_log, modele_gaussien_log)
+
+# Calcul des métriques pour chaque modèle
+aic_values = c(AIC(modele), AIC(modele_gamma_identity), AIC(modele_gamma_inverse), AIC(modele_gamma_log), AIC(modele_gaussien_log))
+
+bic_values = c(BIC(modele), BIC(modele_gamma_identity), BIC(modele_gamma_inverse), BIC(modele_gamma_log), BIC(modele_gaussien_log))
+
+rmse_values = c(rmse(base$Ventes, predict(modele)), 
+                rmse(base$Ventes, predict(modele_gamma_identity, type = "response")), 
+                rmse(base$Ventes, predict(modele_gamma_inverse, type = "response")), 
+                rmse(base$Ventes, predict(modele_gamma_log, type = "response")),
+                rmse(base$Ventes, predict(modele_gaussien_log, type = "response")))
+
+# Création du tableau récapitulatif
+tableau = data.frame(AIC = aic_values, BIC = bic_values, RMSE = rmse_values)
+
+# Attribution des noms de lignes
+rownames(tableau) = c("LM", "GLM (Gamma - Identity)", "GLM (Gamma - Inverse)", "GLM (Gamma - Log)", "GLM (Gaussien - Log)")
+
+# Affichage du tableau formaté
+tableau %>%
+  kbl() %>%
+  kable_paper(full_width = F)
+
+
+
+```
+Le modèle de regression linéaire à le BIC et l'AIC le plus faible donc on continue avec le modèle linéaire.
+
+***
+
+**Test de Vuong**
+
+***
+
+On va utiliser le test de vuong sur les deux modèles ayant l'AIC et le BIC le plus faible pour confirmer le choix de notre modèle final.
+
+```{r}
+
+library(nonnest2)
+
+vuong_test <- vuongtest(modele, modele_gamma_identity)
+
+# Affichage des résultats
+print(vuong_test)
+
+
+```
+
+D’après le test de Vuong, le modèle linéaire est significativement meilleur que le GLM gamma(identity).
+
+Pour améliorer la précision du modèle linéaire, nous allons transformer la variable cible avec le logarithme.
+
+##  III. Transformation de la variable cible
+
+
+```{r}
+# Transformer la variable cible
+base$log_Ventes <- log(base$Ventes)
+
+# Ajuster un modèle linéaire sur la variable transformée
+modele_lm_log <- lm(log_Ventes ~ ., data = base)
+
+# Vérifier les diagnostics après transformation
+par(mfrow = c(2,2))
+plot(modele_lm_log)
+
+```
+
+### III.1 Diagnoctic à postériori du nouveau modèle
+
+Nous allons vérifier les hypothèses 1 et 5 du diagnostic à priori, à savoir la linéarité du modèle et la normalité des résidus.
+
+***
+
+###  Linéarité du modèle
+
+
+***
+
+**Test de Ramsey Reset**
+
+***
+
+Hypotèses :
+
+-   $H_O$: Le modèle est linéaire
+
+-   $H_1$: Le modèle est non linéaire
+
+```{r}
+#Test de ramset 
+library(lmtest)
+resettest(modele_lm_log)
+
+```
+
+***
+
+**Test Tsay** 
+
+***
+
+Hypotèses :
+
+-   $H_O$: Le modèle est linéaire
+
+-   $H_1$: Le modèle est non linéaire
+
+```{r}
+tsay.test <- function(modele)
+{
+  res <- residuals(modele)
+  fitted_values <- fitted(modele)
+  new_modele <- lm(res ~ poly(fitted_values, 2, raw = TRUE))
+  summary(new_modele)
+}
+
+tsay.test(modele_lm_log)
+
+```
+Les deux tests n'ont pas permis de conclure sur la linéarité du modèle. 
+***
+
+### Normalité du modèle
+
+***
+
+***Test de Shapiro-Wilk***
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$ : Le modèle suit une loi normale
+
+-   $H_1$ : Le modèle ne suit pas une loi normale
+
+------------------------------------------------------------------------
+
+
+```{r}
+# Prédictions du modèle
+pred_log <- predict(modele_lm_log)
+
+# Convertir les valeurs prédites en échelle originale (exponentielle inverse du log)
+pred_original <- exp(pred_log)
+
+# Erreur réelle vs prédite
+erreur <- base$log_Ventes - pred_original
+
+shapiro.test(erreur)
+
+```
+
+***Test de Lilliefors***
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$: Le modèle suit une loi normale
+
+-   $H_1$ : Le modèle ne suit pas une loi normale.
+
+------------------------------------------------------------------------
+
+```{r}
+# Installation du package si nécessaire
+
+# Chargement du package
+library(nortest)
+
+lilliefors_test <- lillie.test(residuals(modele_lm_log))
+print(paste("Lilliefors p-value:", lilliefors_test$p.value))
+```
+
+***
+
+Les deux tests n'ont pas permis de conclure sur la normalité du modèle. 
+
+***
+
+## VI. Régression Polynomiale
+
+***
+Commme notre modèle avait la forme parabolique d'un polynome du second dégré, nous allons passer à la régression polynomiale afin de conclure.
+
+
+***
+```{r}
+# Charger la bibliothèque nécessaire
+library(stats)
+
+# Ajuster une régression polynomiale de degré 2 sur toutes les variables explicatives
+modele_poly <- lm(Ventes ~ poly(Depenses_Magasin, 2, raw = TRUE) + 
+                             poly(Remise, 2, raw = TRUE) + 
+                             poly(Depenses_TV, 2, raw = TRUE) + 
+                             poly(Taux_Rupture_Stock, 2, raw = TRUE) + 
+                             poly(Prix, 2, raw = TRUE) + 
+                             poly(Publicites_Radio, 2, raw = TRUE) + 
+                             poly(Depenses_En_Ligne, 2, raw = TRUE), 
+                  data = base)
+
+# Résumé du modèle
+summary(modele_poly)
+
+```
+
+***
+Le modèle a sélectionné les variables les plus influentes : **Depenses_Magasin, Depenses_TV, Taux_Rupture_Stock et Prix** ont un impact fort sur les ventes.Parcontre les variables comme **Remise, Publicites_Radio et Depenses_En_Ligne** ne semblent pas avoir un impact significatif.
+Si on veut améliorer le modèle, on peut supprimer les variables non significatives/
+
+***
+
+```{r}
+modele_poly_reduit <- lm(Ventes ~ poly(Depenses_Magasin, 2, raw = TRUE) + 
+                                    poly(Depenses_TV, 2, raw = TRUE) + 
+                                    poly(Taux_Rupture_Stock, 1, raw = TRUE) + 
+                                    poly(Prix, 2, raw = TRUE), 
+                         data = base)
+
+summary(modele_poly_reduit)
+
+```
+
+***
+
+Vérifions les hypothèses de linéarité  du modèle et de normalité des résidus pour conclure.
+
+***
+
+### VI.1 Diagnoctic à postériori du nouveau modèle
+
+Nous allons vérifier les hypothèses 1 et 5 du diagnostic à priori, à savoir la linéarité du modèle et la normalité des résidus.
+
+###  Linéarité du modèle
+
+
+***
+
+**Test de Ramsey Reset**
+
+***
+
+Hypotèses :
+
+-   $H_O$: Le modèle est linéaire
+
+-   $H_1$: Le modèle est non linéaire
+
+```{r}
+#Test de ramset 
+library(lmtest)
+resettest(modele_poly_reduit)
+
+```
+
+***
+
+**Test Tsay** 
+
+***
+
+Hypotèses :
+
+-   $H_O$: Le modèle est linéaire
+
+-   $H_1$: Le modèle est non linéaire
+
+```{r}
+tsay.test <- function(modele)
+{
+  res <- residuals(modele)
+  fitted_values <- fitted(modele)
+  new_modele <- lm(res ~ poly(fitted_values, 2, raw = TRUE))
+  summary(new_modele)
+}
+
+tsay.test(modele_poly_reduit)
+
+```
+***
+Les deux tests n'ont pas permis de conclure sur la linéarité du modèle. 
+
+
+***
+
+### Normalité du modèle
+
+***
+
+***Test de Shapiro-Wilk***
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$ : Le modèle suit une loi normale
+
+-   $H_1$ : Le modèle ne suit pas une loi normale
+
+------------------------------------------------------------------------
+
+
+```{r}
+# Extraire les résidus du modèle
+residus <- residuals(modele_poly_reduit)
+
+# Effectuer le test de normalité de Shapiro-Wilk
+shapiro.test(residus)
+
+
+```
+
+***Test de Lilliefors***
+
+------------------------------------------------------------------------
+
+Hypothèses :
+
+-   $H_0$: Le modèle suit une loi normale
+
+-   $H_1$ : Le modèle ne suit pas une loi normale.
+
+------------------------------------------------------------------------
+
+```{r}
+# Installation du package si nécessaire
+
+# Chargement du package
+library(nortest)
+
+lilliefors_test <- lillie.test(residuals(modele_poly_reduit))
+print(paste("Lilliefors p-value:", lilliefors_test$p.value))
+```
+***
+De meme, les deux tests sur la normalité des résidus ne donnent pas le résultat
+
+
+***
+
+# **Conclusion**
+
+***
+
+L’analyse des modèles linéaires (LM), des modèles linéaires généralisés (GLM) ainsi que de la régression polynomiale n’a pas permis de révéler une relation significative entre la variable cible et les variables explicatives. Ce résultat suggère que la relation sous-jacente pourrait être non linéaire, plus complexe que prévu, ou influencée par des facteurs non inclus dans le modèle actuel.
+
+
+
+
+
+
+
+
+
+
+
